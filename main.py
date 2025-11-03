@@ -8,6 +8,9 @@ from telegram.ext import (
     Application,
     CommandHandler,
     ContextTypes,
+    CallbackContext,
+    ExtBot,
+    PicklePersistence,
 )
 from dotenv import load_dotenv
 
@@ -24,7 +27,15 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+class ChatData:
+    def __init__(self):
+        pass
+
+
+ContextType = CallbackContext[ExtBot, dict, ChatData, dict]
+
+
+async def start(update: Update, context: ContextType):
     if update.message.chat.type == ChatType.PRIVATE:
         bot = await context.bot.get_me()
         await update.message.reply_text(
@@ -46,7 +57,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 def main():
-    application = Application.builder().token(os.environ["BOT_TOKEN"]).build()
+    application = (
+        Application.builder()
+        .token(os.environ["BOT_TOKEN"])
+        .context_types(ContextTypes(chat_data=ChatData))
+        .persistence(PicklePersistence("persistence.pickle"))
+        .concurrent_updates(True)
+        .build()
+    )
 
     application.add_handler(CommandHandler("start", start))
 
