@@ -1,7 +1,7 @@
 import logging
 import os
 import random
-from typing import Literal
+from typing import Literal, cast
 
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.constants import ChatType
@@ -13,7 +13,9 @@ from telegram.ext import (
     CallbackContext,
     ExtBot,
     PicklePersistence,
+    CallbackQueryHandler,
 )
+from telegram.error import BadRequest
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -176,6 +178,38 @@ async def settings(update: Update, context: ContextType):
         )
 
 
+async def settings_button(update: Update, context: ContextType):
+    query = update.callback_query.data.split("_")
+    if update.effective_user.id != int(query[0]):
+        await update.callback_query.answer("This is not for you.")
+        return
+    await update.callback_query.answer()
+    match query[1]:
+        case "punishment":
+            context.chat_data.punishment = cast(
+                Literal["NONE", "BAN", "MUTE"], query[2]
+            )
+        case "time":
+            if query[2] == "less" and context.chat_data.punishment_time_minutes > 15:
+                context.chat_data.punishment_time_minutes //= 2
+            elif query[2] == "more":
+                context.chat_data.punishment_time_minutes *= 2
+        case "infinitemines":
+            context.chat_data.infinite_mines ^= True
+        case "frequence":
+            context.chat_data.mines_frequence = cast(
+                Literal["RARE", "OCCASIONAL", "COMMON"], query[2]
+            )
+        case "removeall":
+            context.chat_data.placed_mines = 0
+    try:
+        text, reply_markup = get_settings(update.effective_user.id, context)
+
+        await update.effective_message.edit_text(text, "HTML", reply_markup)
+    except BadRequest:
+        pass
+
+
 def main():
     application = (
         Application.builder()
@@ -188,6 +222,7 @@ def main():
 
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("settings", settings))
+    application.add_handler(CallbackQueryHandler(settings_button))
 
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
