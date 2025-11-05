@@ -1,5 +1,7 @@
 import logging
 import os
+import random
+from typing import Literal
 
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.constants import ChatType
@@ -29,7 +31,29 @@ logger = logging.getLogger(__name__)
 
 class ChatData:
     def __init__(self):
-        pass
+        self.placed_mines = 0
+
+        self.punishment: Literal["NONE", "BAN", "MUTE"] = "NONE"
+        self.punishment_time_minutes = 15
+        self.infinite_mines = False
+        self.mines_frequence: Literal["RARE", "OCCASIONAL", "COMMON"] = "OCCASIONAL"
+
+    def landed_on_mine(self):
+        num_mines = self.placed_mines if not self.infinite_mines else 100
+        if num_mines <= 0:
+            return False
+        if self.mines_frequence == "COMMON":
+            base_probability = 900
+        elif self.mines_frequence == "OCCASIONAL":
+            base_probability = 9900
+        elif self.mines_frequence == "RARE":
+            base_probability = 99900
+        else:
+            raise ValueError(
+                "Incorrect value for 'mines_frequence': " + self.mines_frequence
+            )
+        probability = num_mines / (num_mines + base_probability)
+        return random.random() < probability
 
 
 ContextType = CallbackContext[ExtBot, dict, ChatData, dict]
