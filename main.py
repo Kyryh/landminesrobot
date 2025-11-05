@@ -95,7 +95,7 @@ def get_settings(user_id: int, context: ContextType):
     punishment_time = (
         f"{context.chat_data.punishment_time_minutes}m"
         if context.chat_data.punishment_time_minutes < 60
-        else f"{context.chat_data.punishment_time_minutes / 60}h"
+        else f"{context.chat_data.punishment_time_minutes // 60}h"
     )
     return (
         "Settings:\n"
