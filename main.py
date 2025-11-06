@@ -193,7 +193,7 @@ async def place(update: Update, context: ContextType):
     if await is_admin(update):
         try:
             num_mines = int(cast(list, context.args)[0])
-        except ValueError | TypeError | IndexError:
+        except (ValueError, TypeError, IndexError):
             await update.effective_message.reply_text("Syntax:\n\n/place <num_mines>")
             return
         context.chat_data.placed_mines += num_mines
