@@ -1,9 +1,10 @@
+from datetime import datetime
 import logging
 import os
 import random
 from typing import Literal, cast
 
-from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram import ChatPermissions, Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.constants import ChatType
 from telegram.helpers import create_deep_linked_url
 from telegram.ext import (
@@ -14,6 +15,8 @@ from telegram.ext import (
     ExtBot,
     PicklePersistence,
     CallbackQueryHandler,
+    MessageHandler,
+    filters,
 )
 from telegram.error import BadRequest
 from dotenv import load_dotenv
@@ -210,6 +213,50 @@ async def settings_button(update: Update, context: ContextType):
         pass
 
 
+async def mine_check(update: Update, context: ContextType):
+    if context.chat_data.landed_on_mine():
+        message = f"💥 {update.effective_user.name} stepped on a landmine"
+
+        punishment_time = (
+            f"{context.chat_data.punishment_time_minutes}m"
+            if context.chat_data.punishment_time_minutes < 60
+            else f"{context.chat_data.punishment_time_minutes // 60}h"
+        )
+
+        if context.chat_data.punishment == "MUTE":
+            try:
+                await update.effective_chat.restrict_member(
+                    update.effective_user.id,
+                    ChatPermissions.no_permissions(),
+                    until_date=(
+                        datetime.now().timestamp()
+                        + context.chat_data.punishment_time_minutes * 60
+                    ),
+                )
+                message += f" and has been muted for {punishment_time}"
+            except BadRequest:
+                pass
+        elif context.chat_data.punishment == "BAN":
+            try:
+                await update.effective_chat.ban_member(
+                    update.effective_user.id,
+                    until_date=(
+                        datetime.now().timestamp()
+                        + context.chat_data.punishment_time_minutes * 60
+                    ),
+                )
+                message += f" and has been banned for {punishment_time}"
+            except BadRequest:
+                pass
+
+        message += "!"
+
+        if not context.chat_data.infinite_mines:
+            context.chat_data.placed_mines -= 1
+            message += f" ({context.chat_data.placed_mines} landmine(s) remaining)"
+        await update.effective_chat.send_message(message)
+
+
 def main():
     application = (
         Application.builder()
@@ -223,6 +270,7 @@ def main():
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("settings", settings))
     application.add_handler(CallbackQueryHandler(settings_button))
+    application.add_handler(MessageHandler(filters.USER, mine_check))
 
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
