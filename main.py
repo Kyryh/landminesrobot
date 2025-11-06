@@ -181,6 +181,31 @@ async def settings(update: Update, context: ContextType):
         )
 
 
+def can_convert_to_num(string: str):
+    try:
+        int(string)
+        return True
+    except ValueError:
+        return False
+
+
+async def place(update: Update, context: ContextType):
+    if await is_admin(update):
+        try:
+            num_mines = int(cast(list, context.args)[0])
+        except ValueError | TypeError | IndexError:
+            await update.effective_message.reply_text("Syntax:\n\n/place <num_mines>")
+            return
+        context.chat_data.placed_mines += num_mines
+        await update.effective_message.reply_text(
+            f"Placed {num_mines} mines ({context.chat_data.placed_mines} total)"
+        )
+    else:
+        await update.message.reply_text(
+            "Sorry, you're not allowed to use this command."
+        )
+
+
 async def settings_button(update: Update, context: ContextType):
     query = update.callback_query.data.split("_")
     if update.effective_user.id != int(query[0]):
@@ -269,6 +294,7 @@ def main():
 
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("settings", settings))
+    application.add_handler(CommandHandler("place", place))
     application.add_handler(CallbackQueryHandler(settings_button))
     application.add_handler(MessageHandler(filters.USER, mine_check))
 
