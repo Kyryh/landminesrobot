@@ -4,7 +4,13 @@ import os
 import random
 from typing import Literal, cast
 
-from telegram import ChatPermissions, Update, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram import (
+    ChatPermissions,
+    Message,
+    Update,
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+)
 from telegram.constants import ChatType
 from telegram.helpers import create_deep_linked_url
 from telegram.ext import (
@@ -36,6 +42,8 @@ logger = logging.getLogger(__name__)
 
 class ChatData:
     def __init__(self):
+        self.last_settings_message: Message | None = None
+
         self.placed_mines = 0
 
         self.punishment: Literal["NONE", "BAN", "MUTE"] = "NONE"
@@ -171,7 +179,9 @@ def get_settings(user_id: int, context: ContextType):
 async def settings(update: Update, context: ContextType):
     if await is_admin(update):
         text, reply_markup = get_settings(update.effective_user.id, context)
-        await update.message.reply_html(
+        if context.chat_data.last_settings_message:
+            await context.chat_data.last_settings_message.delete()
+        context.chat_data.last_settings_message = await update.message.reply_html(
             text,
             reply_markup=reply_markup,
         )
