@@ -181,14 +181,6 @@ async def settings(update: Update, context: ContextType):
         )
 
 
-def can_convert_to_num(string: str):
-    try:
-        int(string)
-        return True
-    except ValueError:
-        return False
-
-
 async def place(update: Update, context: ContextType):
     if await is_admin(update):
         try:
