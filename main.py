@@ -180,7 +180,10 @@ async def settings(update: Update, context: ContextType):
     if await is_admin(update):
         text, reply_markup = get_settings(update.effective_user.id, context)
         if context.chat_data.last_settings_message:
-            await context.chat_data.last_settings_message.delete()
+            try:
+                await context.chat_data.last_settings_message.delete()
+            except BadRequest:
+                pass
         context.chat_data.last_settings_message = await update.message.reply_html(
             text,
             reply_markup=reply_markup,
