@@ -295,10 +295,14 @@ def main():
     )
 
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("settings", settings))
-    application.add_handler(CommandHandler("place", place))
+    application.add_handler(
+        CommandHandler("settings", settings, filters.ChatType.GROUPS)
+    )
+    application.add_handler(CommandHandler("place", place, filters.ChatType.GROUPS))
     application.add_handler(CallbackQueryHandler(settings_button))
-    application.add_handler(MessageHandler(filters.USER, mine_check))
+    application.add_handler(
+        MessageHandler(filters.USER & filters.ChatType.GROUPS, mine_check)
+    )
 
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
